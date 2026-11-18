@@ -31,3 +31,7 @@ O workflow prepara Java 17, Android SDK 35, baixa o PRoot ARM64 com hash fixado 
 - O código precisa ser compilado e testado em aparelho físico antes de ser considerado validado.
 
 Consulte [BUILD-STATUS.md](BUILD-STATUS.md) e [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+
+## Estado desta publicação
+O código-fonte foi publicado na branch `main`. A geração do APK depende do workflow GitHub Actions; não marque o APK como pronto até existir uma execução concluída e um artefato disponível.
