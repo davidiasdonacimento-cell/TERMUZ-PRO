@@ -123,6 +123,8 @@ public final class LinuxInstaller {
             Process process = guest(c, root(c), new String[]{
                     "/bin/bash", "-lc",
                     "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
+                    "export TMPDIR=/tmp TMP=/tmp TEMP=/tmp; " +
+                    "mkdir -p /tmp && chmod 1777 /tmp; " +
                     "export DEBIAN_FRONTEND=noninteractive; " +
                     "/usr/bin/apt-get update && " +
                     "/usr/bin/apt-get install -y python3 python3-pip git ca-certificates curl wget nano procps"
@@ -177,6 +179,12 @@ public final class LinuxInstaller {
         builder.environment().put("HOME", "/root");
         builder.environment().put("PATH",
                 "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin");
+        // Nunca herdar o TMPDIR privado do Android para dentro do Ubuntu.
+        // Scripts de pós-instalação do dpkg (ex.: ca-certificates) precisam
+        // usar o /tmp existente no rootfs do PRoot.
+        builder.environment().put("TMPDIR", "/tmp");
+        builder.environment().put("TMP", "/tmp");
+        builder.environment().put("TEMP", "/tmp");
         builder.environment().put("TERM", "xterm-256color");
         return builder.start();
     }
