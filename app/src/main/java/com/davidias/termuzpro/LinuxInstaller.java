@@ -337,8 +337,14 @@ public final class LinuxInstaller {
                     Path target = safePath(base, entry.getLinkName());
                     File parent = output.getParentFile();
                     if (parent != null) parent.mkdirs();
-                    if (Files.exists(target)) Files.createLink(path, target);
-                    else pendingHardLinks.put(path, target);
+                    if (Files.isRegularFile(target)) {
+                        // Android pode bloquear hard links no armazenamento privado.
+                        // Copiar o arquivo de destino mantém o conteúdo sem exigir link(2).
+                        Files.copy(target, path, StandardCopyOption.REPLACE_EXISTING);
+                        output.setExecutable(Files.isExecutable(target), true);
+                    } else {
+                        pendingHardLinks.put(path, target);
+                    }
                 } else if (entry.isFile()) {
                     File parent = output.getParentFile();
                     if (parent != null) parent.mkdirs();
@@ -357,10 +363,13 @@ public final class LinuxInstaller {
             Iterator<Map.Entry<Path, Path>> iterator = pendingHardLinks.entrySet().iterator();
             while (iterator.hasNext()) {
                 Map.Entry<Path, Path> link = iterator.next();
-                if (Files.exists(link.getValue())) {
+                if (Files.isRegularFile(link.getValue())) {
                     File parent = link.getKey().toFile().getParentFile();
-                    if (parent != null) parent.mkdirs();
-                    Files.createLink(link.getKey(), link.getValue());
+                    if (parent != null && !parent.exists() && !parent.mkdirs()) {
+                        throw new IOException("Não foi possível criar a pasta do hard link: " + parent);
+                    }
+                    Files.copy(link.getValue(), link.getKey(), StandardCopyOption.REPLACE_EXISTING);
+                    link.getKey().toFile().setExecutable(Files.isExecutable(link.getValue()), true);
                     iterator.remove();
                     progress = true;
                 }
