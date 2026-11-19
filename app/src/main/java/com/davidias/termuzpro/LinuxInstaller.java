@@ -307,9 +307,32 @@ public final class LinuxInstaller {
                     }
                 } else if (entry.isSymbolicLink()) {
                     File parent = output.getParentFile();
-                    if (parent != null) parent.mkdirs();
+                    if (parent != null && !parent.exists() && !parent.mkdirs()) {
+                        throw new IOException("Não foi possível criar a pasta do link: " + parent);
+                    }
                     Files.deleteIfExists(path);
-                    Files.createSymbolicLink(path, Paths.get(entry.getLinkName()));
+                    Path linkTarget = Paths.get(entry.getLinkName());
+                    try {
+                        Files.createSymbolicLink(path, linkTarget);
+                    } catch (IOException | UnsupportedOperationException linkError) {
+                        // Alguns dispositivos/volumes Android recusam symlinks.
+                        // Para links de arquivos, copiar o destino preserva o executável
+                        // necessário sem interromper toda a extração do Ubuntu.
+                        Path resolvedTarget = linkTarget.isAbsolute()
+                                ? base.resolve(linkTarget.toString().substring(1)).normalize()
+                                : path.getParent().resolve(linkTarget).normalize();
+                        if (resolvedTarget.startsWith(base)
+                                && Files.isRegularFile(resolvedTarget)
+                                && !Files.isDirectory(resolvedTarget)) {
+                            Files.copy(resolvedTarget, path, StandardCopyOption.REPLACE_EXISTING);
+                            output.setExecutable(Files.isExecutable(resolvedTarget), true);
+                        } else {
+                            throw new IOException("Falha ao criar link simbólico "
+                                    + entry.getName() + " -> " + entry.getLinkName()
+                                    + ": " + linkError.getClass().getSimpleName()
+                                    + ": " + linkError.getMessage(), linkError);
+                        }
+                    }
                 } else if (entry.isLink()) {
                     Path target = safePath(base, entry.getLinkName());
                     File parent = output.getParentFile();
