@@ -17,7 +17,8 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
     buildTypes {
-        debug { applicationIdSuffix '.debug'; versionNameSuffix '-debug' }
+        // Separate package id so the old 0.2.0 installation remains untouched.
+        debug { applicationIdSuffix '.v021'; versionNameSuffix '-debug' }
         release { minifyEnabled false }
     }
 }
